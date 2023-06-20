@@ -34,6 +34,7 @@ import android.text.TextUtils;
 
 import com.github.kevinsawicki.http.HttpRequest;
 import com.github.kevinsawicki.http.HttpRequest.HttpRequestException;
+import okio.ByteString;
 
 abstract class CordovaHttp {
     protected static final String TAG = "CordovaHTTP";
@@ -234,9 +235,14 @@ abstract class CordovaHttp {
       if ("json".equals(this.getSerializerName())) {
           request.send(this.getParamsObject().toString());
       } else if ("utf8".equals(this.getSerializerName())) {
-          request.send(this.getParamsMap().get("text").toString());
+        //request.send(this.getParamsMap().get("text").toString());
+        String temp = this.getParamsMap().get("text").toString();
+        ByteString decodeHex = ByteString.decodeHex(temp);
+        byte [] body = decodeHex.toByteArray();
+        request.send(body);
+
       } else {
-          request.form(this.getParamsMap());
+        request.form(this.getParamsMap());
       }
     }
 
@@ -272,10 +278,26 @@ abstract class CordovaHttp {
       return decodeBody(rawOutput, ACCEPTED_CHARSETS[ACCEPTED_CHARSETS.length - 1]);
     }
 
-    private String decodeByteBuffer(AtomicReference<ByteBuffer> rawOutput, String charsetName)
+/*     private String decodeByteBuffer(AtomicReference<ByteBuffer> rawOutput, String charsetName)
       throws CharacterCodingException, MalformedInputException {
 
       return createCharsetDecoder(charsetName).decode(rawOutput.get()).toString();
+    } */
+    private String decodeByteBuffer(AtomicReference<ByteBuffer> rawOutput, String charsetName)
+      throws CharacterCodingException, MalformedInputException {
+
+        String result = null;
+        try {
+          result = createCharsetDecoder(charsetName).decode(rawOutput.get()).toString();
+        } catch (MalformedInputException e) {
+
+          ByteBuffer bb = rawOutput.get();
+          byte[] bArr = bb.array();
+          ByteString of = ByteString.of(bArr, 0, bArr.length);
+          result = of.hex().toUpperCase();
+        }
+        return result;
+
     }
 
     protected void returnResponseObject(HttpRequest request) throws HttpRequestException {

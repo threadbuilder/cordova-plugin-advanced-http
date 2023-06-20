@@ -55,13 +55,31 @@ static BOOL AFErrorOrUnderlyingErrorHasCodeInDomain(NSError *error, NSInteger co
     nsEncoding = CFStringConvertEncodingToNSStringEncoding(cfEncoding);
   }
 
+    
   for (int i = 0; i < sizeof(SupportedEncodings) / sizeof(NSStringEncoding) && !decoded; ++i) {
     if (cfEncoding == kCFStringEncodingInvalidId || nsEncoding == SupportedEncodings[i]) {
       decoded = [[NSString alloc] initWithData:rawResponseData encoding:SupportedEncodings[i]];
     }
   }
-
+  if(decoded==nil) {
+    decoded = [self hexadecimalString:rawResponseData];
+  }
   return decoded;
+}
+
+- (NSString *)hexadecimalString:(NSData*)data{
+    const unsigned char *dataBuffer = (const unsigned char *)[data bytes];
+    if (!dataBuffer)
+    {
+        return [NSString string];
+    }
+    NSUInteger          dataLength  = [data length];
+    NSMutableString     *hexString  = [NSMutableString stringWithCapacity:(dataLength * 2)];
+    for (int i = 0; i < dataLength; ++i)
+    {
+        [hexString appendFormat:@"%02x", (unsigned int)dataBuffer[i]];
+    }
+    return [NSString stringWithString:hexString];
 }
 
 - (CFStringEncoding) getEncoding:(NSURLResponse *)response {
